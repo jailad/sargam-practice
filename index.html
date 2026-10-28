@@ -1,0 +1,1239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Sargam Practice</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<meta name="theme-color" content="#1a1512">
+
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#faf5ec;
+    --surface:#fffdf8;
+    --surface-2:#f3ead9;
+    --ink:#221a12;
+    --muted:#6f6151;
+    --line:#e2d5bf;
+    --accent:#b44a0c;
+    --accent-ink:#ffffff;
+    --accent-soft:#fbe9d7;
+    --good:#1d7a4f;
+    --good-soft:#dcf0e4;
+    --warn:#a05a08;
+    --flat:#2563a8;
+    --sharp:#b03a2e;
+    --needle:#221a12;
+    --track:#e8dcc4;
+    --shadow:0 1px 2px rgba(60,40,10,.06), 0 8px 24px rgba(60,40,10,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#17120d;
+      --surface:#211a13;
+      --surface-2:#2a2117;
+      --ink:#f3e9d8;
+      --muted:#b3a48e;
+      --line:#3d3222;
+      --accent:#e8791e;
+      --accent-ink:#1c1206;
+      --accent-soft:#3a2712;
+      --good:#4cc084;
+      --good-soft:#173528;
+      --warn:#e8a33d;
+      --flat:#6fa8dc;
+      --sharp:#e07a5f;
+      --needle:#f3e9d8;
+      --track:#3a2f1f;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.45;
+  }
+  main{
+    max-width:680px;
+    margin:0 auto;
+    padding:20px 16px 40px;
+  }
+  .lede{
+    font-size:16px;
+    color:var(--muted);
+    margin:4px 0 18px;
+  }
+  .lede strong{color:var(--ink); font-weight:600}
+
+  /* ---------- Target display ---------- */
+  .target{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:22px 20px 18px;
+    text-align:center;
+  }
+  .target .dev{font-size:15px; color:var(--muted); letter-spacing:.02em}
+  .target .swara{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:84px;
+    line-height:1.05;
+    font-weight:600;
+    margin:2px 0 0;
+  }
+  .target .swara.playing{color:var(--accent)}
+  .target .freq{
+    font-size:15px; color:var(--muted); margin-top:4px;
+    font-variant-numeric:tabular-nums;
+  }
+  .target .freq b{color:var(--ink); font-weight:600}
+  .playbar{
+    height:4px; background:var(--track); border-radius:99px;
+    margin:14px auto 0; max-width:340px; overflow:hidden;
+  }
+  .playbar i{display:block; height:100%; width:0%; background:var(--accent); border-radius:99px}
+
+  /* ---------- Note picker ---------- */
+  .section-label{
+    font-size:13px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--muted); margin:26px 2px 10px;
+  }
+  .notes{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+  }
+  .note-btn{
+    appearance:none; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); border-radius:12px; padding:12px 4px 10px;
+    font:inherit; cursor:pointer; text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .note-btn .n{font-family:Georgia,serif; font-size:24px; font-weight:600; display:block; line-height:1.1}
+  .note-btn .d{font-size:13px; color:var(--muted); display:block}
+  .note-btn[aria-pressed="true"]{
+    background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+  }
+  .note-btn[aria-pressed="true"] .d{color:var(--accent-ink); opacity:.85}
+  .note-btn:active{transform:scale(.97)}
+
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:18px;
+    margin-top:14px;
+  }
+  .card h2{font-size:18px; margin:0 0 4px; font-weight:700}
+  .card p.sub{margin:0 0 14px; color:var(--muted); font-size:14.5px}
+
+  .seg{
+    display:flex; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:10px; padding:3px; gap:3px; margin-bottom:14px;
+  }
+  .seg button{
+    flex:1; appearance:none; border:0; background:transparent; color:var(--muted);
+    font:inherit; font-size:15px; font-weight:600; padding:9px 0; border-radius:7px; cursor:pointer;
+  }
+  .seg button[aria-pressed="true"]{background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.15)}
+
+  .btn{
+    appearance:none; border:0; cursor:pointer; font:inherit;
+    width:100%; padding:16px; border-radius:12px;
+    font-size:17px; font-weight:700;
+    background:var(--accent); color:var(--accent-ink);
+  }
+  .btn:active{transform:scale(.985)}
+  .btn:disabled{opacity:.55; cursor:default; transform:none}
+  .btn.secondary{
+    background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+  }
+  .btn.stop{background:var(--sharp); color:#fff}
+  @media (prefers-color-scheme: dark){ .btn.stop{color:#1c0f06} }
+
+  .fineprint{font-size:12.5px; color:var(--muted); margin:12px 0 0; line-height:1.55}
+
+  /* ---------- Gauge ---------- */
+  .readout{
+    display:flex; justify-content:space-between; align-items:baseline;
+    gap:12px; margin:6px 0 2px; flex-wrap:wrap;
+  }
+  .readout .heard{
+    font-family:Georgia,serif; font-size:34px; font-weight:600; line-height:1;
+  }
+  .readout .heard small{font-size:15px; color:var(--muted); font-family:inherit}
+  .readout .cents{
+    font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1;
+  }
+  .readout .cents small{display:block; font-size:12px; font-weight:600; color:var(--muted); text-align:right; margin-top:3px}
+  .idle-msg{font-size:15px; color:var(--muted); padding:10px 0 2px}
+
+  .gauge{margin:16px 0 4px}
+  .gauge-track{
+    position:relative; height:34px; border-radius:8px;
+    background:var(--track);
+  }
+  .gauge-zone{
+    position:absolute; top:0; bottom:0; left:40%; width:20%;
+    background:var(--good); opacity:.45; border-radius:0;
+  }
+  .gauge-center{
+    position:absolute; top:0; bottom:0; left:50%; width:2px; margin-left:-1px;
+    background:var(--ink); opacity:.55;
+  }
+  .needle{
+    position:absolute; top:-5px; bottom:-5px; width:4px; margin-left:-2px;
+    background:var(--needle); border-radius:2px; left:50%;
+    transition:left .07s linear;
+    box-shadow:0 0 0 2px var(--surface);
+  }
+  .gauge-labels{
+    display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted);
+    margin-top:6px; font-variant-numeric:tabular-nums;
+  }
+  .gauge-labels .mid{font-weight:700; color:var(--ink)}
+  .holdwrap{margin-top:12px}
+  .holdbar{height:6px; background:var(--track); border-radius:99px; overflow:hidden}
+  .holdbar i{display:block; height:100%; width:0%; background:var(--good)}
+  .hold-label{font-size:12.5px; color:var(--muted); margin-top:5px}
+
+  /* ---------- Hold timer & streaks ---------- */
+  .hold-live{
+    margin-top:16px; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:12px; padding:14px 14px 12px; text-align:center;
+  }
+  .hold-live-label{font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .hold-live-time{
+    font-size:54px; font-weight:800; line-height:1.05; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; margin-top:2px;
+  }
+  .hold-live-time .unit{font-size:24px; font-weight:700; color:var(--muted); margin-left:2px}
+  .hold-live.holding .hold-live-time{color:var(--good)}
+  .hold-live-target{font-size:13.5px; color:var(--muted); line-height:1.45}
+  .milestone{
+    display:none; margin-top:10px; padding:9px 10px; border-radius:8px;
+    background:var(--good-soft); color:var(--good); font-size:15px; font-weight:700; line-height:1.35;
+  }
+  .milestone.show{display:block}
+  .milestone-pills{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-top:11px}
+  .milestone-pill{
+    font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;
+    padding:4px 9px; border-radius:99px; border:1px solid var(--line);
+    background:var(--surface); color:var(--muted);
+  }
+  .milestone-pill.reached{background:var(--good); border-color:var(--good); color:#fff}
+  @media (prefers-color-scheme: dark){ .milestone-pill.reached{color:#0d2117} }
+  .streak-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px}
+  .stat{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+    padding:12px 10px; text-align:center;
+  }
+  .stat-num{font-size:27px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums}
+  .stat-label{font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.35}
+  .last-hold{
+    font-size:14.5px; line-height:1.45; background:var(--surface-2);
+    border-radius:10px; padding:11px 12px; margin-bottom:14px;
+  }
+  .last-hold:empty{display:none}
+
+  .verdict{
+    display:none; margin-top:14px; padding:13px 14px; border-radius:10px;
+    font-size:16.5px; font-weight:600; line-height:1.4;
+  }
+  .verdict.show{display:block}
+  .verdict.good{background:var(--good-soft); color:var(--good)}
+  .verdict.close{background:var(--accent-soft); color:var(--warn)}
+  .verdict.off{background:var(--accent-soft); color:var(--ink)}
+  .verdict.off b{color:var(--accent)}
+
+  .mic-note{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--surface-2); border-radius:10px; padding:12px 13px; margin-bottom:14px;
+    font-size:14px; color:var(--ink);
+  }
+  .mic-note svg{flex:none; margin-top:1px}
+  .err{
+    display:none; margin-top:12px; padding:12px 13px; border-radius:10px;
+    background:var(--accent-soft); color:var(--ink); font-size:14.5px;
+  }
+  .err.show{display:block}
+
+  /* ---------- Mic diagnostics ---------- */
+  .mic-status{display:none; margin-top:10px; font-size:13.5px; color:var(--muted); line-height:1.45}
+  .mic-devices{margin-top:12px}
+  .mic-devices label{
+    display:block; font-size:12.5px; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+  }
+  .mic-devices select{
+    width:100%; font:inherit; font-size:15px; padding:11px; border-radius:9px;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  }
+  .mic-help{
+    margin-top:12px; padding:12px 13px; border-radius:10px;
+    background:var(--surface-2); font-size:14px; line-height:1.5;
+  }
+  .mic-help p{margin:0 0 8px}
+  .mic-help ol{margin:0 0 4px; padding-left:20px}
+  .mic-help li{margin-bottom:5px}
+  .mic-help .btn{margin-top:8px; padding:12px; font-size:15px}
+  .levelwrap{margin-top:14px}
+  .levelbar{height:8px; background:var(--track); border-radius:99px; overflow:hidden}
+  .levelbar i{display:block; height:100%; width:0%; background:var(--good); transition:width .08s linear}
+  .level-label{font-size:12.5px; color:var(--muted); margin-top:5px; line-height:1.45}
+
+  /* ---------- Settings ---------- */
+  .sa-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:7px}
+  .sa-grid button{
+    appearance:none; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); border-radius:9px; padding:10px 0; font:inherit;
+    font-size:15px; font-weight:600; cursor:pointer; font-variant-numeric:tabular-nums;
+  }
+  .sa-grid button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+  .sa-grid button:active{transform:scale(.96)}
+  .scale-table{
+    width:100%; border-collapse:collapse; margin-top:14px; font-size:13.5px;
+    font-variant-numeric:tabular-nums;
+  }
+  .scale-table th,.scale-table td{padding:5px 4px; text-align:left; border-bottom:1px solid var(--line)}
+  .scale-table th{color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.05em; text-transform:uppercase}
+  .scale-table td:first-child{font-family:Georgia,serif; font-weight:600; font-size:15px}
+  .scale-table tr:last-child td{border-bottom:0}
+
+  footer{margin-top:28px; border-top:1px solid var(--line); padding-top:14px}
+  footer p{font-size:12.5px; color:var(--muted); line-height:1.6; margin:0 0 8px}
+  footer p b{color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+  <p class="lede"><strong>One note at a time.</strong> Pick a swara, listen to the reference voice sing it, then sing it back and see how close you land.</p>
+
+  <!-- Target -->
+  <section class="target" aria-live="polite">
+    <div class="dev" id="targetDev">सा</div>
+    <div class="swara" id="targetSwara">Sa</div>
+    <div class="freq" id="targetFreq">Target: <b>196.0 Hz</b> · Sa = G · just intonation</div>
+    <div class="playbar" aria-hidden="true"><i id="playProgress"></i></div>
+  </section>
+
+  <!-- Note picker -->
+  <div class="section-label" id="pickerLabel">Choose a note</div>
+  <div class="notes" role="group" aria-labelledby="pickerLabel" id="noteGrid"></div>
+
+  <!-- Reference voice -->
+  <section class="card">
+    <h2>1 · Listen first</h2>
+    <p class="sub">Hear the target note sung as a held “aa”, then match it.</p>
+    <div class="seg" role="group" aria-label="Reference voice">
+      <button type="button" id="voiceMale" aria-pressed="true">Male voice</button>
+      <button type="button" id="voiceFemale" aria-pressed="false">Female voice</button>
+    </div>
+    <button type="button" class="btn" id="listenBtn">▶&ensp;Listen — sing <span id="listenNote">Sa</span></button>
+    <p class="fineprint">Honest fine print: this is not a recording of a person. The prototype <b>synthesizes</b> a voice-like tone — a rich harmonic source shaped by formant filters for the vowel “aa”, with a touch of vibrato. Male and female differ in pitch (female sings the same note an octave up) and in formant placement. Real recorded reference voices are a possible v2 — they aren’t faked here.</p>
+  </section>
+
+  <!-- Sing and compare -->
+  <section class="card">
+    <h2>2 · Sing it back</h2>
+    <p class="sub">Sing the same note, steady, on “aa”. Hold it for about a second to get a verdict — and keep it in tune to build your hold below.</p>
+
+    <div class="mic-note" id="micNote">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 19v3"/></svg>
+      <span>Your microphone is used only to measure pitch, right here in this page. Nothing is recorded or sent anywhere. You’ll be asked for permission first.</span>
+    </div>
+
+    <button type="button" class="btn secondary" id="micBtn">Enable microphone &amp; start singing</button>
+
+    <div class="mic-status" id="micStatus" role="status"></div>
+
+    <div class="mic-devices" id="micDevices" hidden>
+      <label for="micSelect">Microphone input</label>
+      <select id="micSelect"></select>
+    </div>
+
+    <div class="mic-help" id="micHelp" hidden>
+      <p><b>Microphone not coming through? Work through these:</b></p>
+      <ol>
+        <li><b>Viewing this inside an app</b> (like Muse’s built-in browser)? In-app browsers on Android can’t pass the microphone to a page. Open this same page in <b>Chrome</b> instead — via the app’s menu or Share → “Open in browser” — and use the mic there.</li>
+        <li>When the browser asks, choose <b>Allow</b> for the microphone.</li>
+        <li>If you blocked it earlier: open this page’s site settings in your browser, set <b>Microphone → Allow</b>, then reload the page.</li>
+        <li>If more than one mic exists (phone, headset, laptop), the <b>Microphone input</b> picker above appears — try the other input.</li>
+        <li>Close anything else using the mic — a call, a voice recorder, another tab — and plug the headset in before starting.</li>
+        <li>On a phone, also check in system Settings that the browser app itself is allowed to use the microphone.</li>
+      </ol>
+      <button type="button" class="btn secondary" id="micRetryBtn">Check the microphone again</button>
+      <button type="button" class="btn secondary" id="micReloadBtn">Reload page</button>
+    </div>
+
+    <div id="singUI" hidden>
+      <div class="levelwrap" aria-hidden="true">
+        <div class="levelbar"><i id="levelFill"></i></div>
+        <div class="level-label" id="levelLabel">Input level — sing or speak to check the mic is actually hearing you.</div>
+      </div>
+      <div class="readout">
+        <div class="heard"><span id="heardSwara">—</span> <small id="heardHz"></small></div>
+        <div class="cents"><span id="centsVal">–</span><small>cents vs target</small></div>
+      </div>
+      <div class="gauge" aria-hidden="true">
+        <div class="gauge-track">
+          <div class="gauge-zone"></div>
+          <div class="gauge-center"></div>
+          <div class="needle" id="needle"></div>
+        </div>
+        <div class="gauge-labels">
+          <span>♭ flat · −50</span><span class="mid">in tune · 0</span><span>+50 · sharp ♯</span>
+        </div>
+      </div>
+      <div class="hold-live" id="holdLive">
+        <div class="hold-live-label">Current hold · in tune</div>
+        <div class="hold-live-time"><span id="holdTime">0.0</span><span class="unit">s</span></div>
+        <div class="hold-live-target" id="holdHint">Stay within ±10 cents of the target to start a hold. 3.0s or more counts as a successful hold.</div>
+        <div class="milestone" id="milestoneMsg" role="status"></div>
+        <div class="milestone-pills" id="milestonePills" aria-label="Hold milestones">
+          <span class="milestone-pill" data-sec="3">3s</span>
+          <span class="milestone-pill" data-sec="5">5s</span>
+          <span class="milestone-pill" data-sec="10">10s</span>
+          <span class="milestone-pill" data-sec="15">15s</span>
+          <span class="milestone-pill" data-sec="20">20s</span>
+        </div>
+      </div>
+      <div class="holdwrap">
+        <div class="holdbar"><i id="holdFill"></i></div>
+        <div class="hold-label" id="holdLabel">Sing and hold the note steady…</div>
+      </div>
+      <div class="verdict" id="verdict" role="status"></div>
+    </div>
+
+    <div class="idle-msg" id="idleMsg">Pitch feedback will appear here once the mic is on.</div>
+    <div class="err" id="micErr"></div>
+  </section>
+
+  <!-- Hold-time streaks -->
+  <section class="card">
+    <h2>3 · Hold-time streaks</h2>
+    <p class="sub">Hold the target in tune (within ±10 cents) for <b>3 seconds or more</b> to count a successful hold. If a hold drifts out of tune or goes silent before 3 seconds, it ends and the streak resets. <b>Session only:</b> streaks and bests reset when this page is reloaded — no history is saved.</p>
+    <div class="streak-grid">
+      <div class="stat">
+        <div class="stat-num" id="statBestNote">0.0s</div>
+        <div class="stat-label">Best for <span id="statBestNoteName">Sa</span> · this session</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statBestOverall">0.0s</div>
+        <div class="stat-label">Best overall · this session</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statStreak">0</div>
+        <div class="stat-label">Current streak · consecutive successful holds</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Successful holds · this session</div>
+      </div>
+    </div>
+    <div class="last-hold" id="lastHoldMsg">No holds recorded yet this session. Turn on the mic above and hold a note in tune to start.</div>
+    <button type="button" class="btn secondary" id="resetStreaksBtn">Reset streaks</button>
+    <p class="fineprint">Reset clears the current streak, total successful holds, and all best hold times — for this session only.</p>
+  </section>
+
+  <!-- Settings -->
+  <section class="card">
+    <h2>Settings</h2>
+    <p class="sub">Your Sa — every other swara is tuned from this. Your Riyaz app has Sa = G, so that’s the default here.</p>
+    <div class="sa-grid" id="saGrid" role="group" aria-label="Choose Sa"></div>
+    <table class="scale-table" aria-label="Scale frequencies for the chosen Sa">
+      <thead><tr><th>Swara</th><th>Ratio</th><th id="scaleHzHead">Hz (male)</th></tr></thead>
+      <tbody id="scaleBody"></tbody>
+    </table>
+    <p class="fineprint">Tuning used: <b>just intonation</b> with Hindustani ratios (Re = 9/8, Ga = 5/4, Ma = 4/3, Pa = 3/2, Dha = 5/3, Ni = 15/8). The alternative, equal temperament, would leave Sa, Ma and Pa almost unchanged but move Ga, Dha and Ni by roughly 12–16 cents — audible if you A/B them, which is why the choice is labelled rather than hidden.</p>
+  </section>
+
+  <footer>
+    <p><b>Scope, on purpose:</b> one octave, shuddha (natural) swaras only. Hold-time streaks and bests are <b>session-only</b> — they reset when this page is reloaded and no history is saved. Possible next steps, if you want them: real recorded reference voices and komal / tivra notes.</p>
+    <p>Try a few notes and say what feels off — pitch detection, the reference tone, the hold timer, the layout at 5 AM — and the next update will follow your reaction, not a roadmap.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Data ---------- */
+  // Just-intonation (Hindustani) ratios from Sa.
+  var SWARAS = [
+    { name:"Sa",  dev:"सा",  ratio:1,     label:"1" },
+    { name:"Re",  dev:"रे",  ratio:9/8,   label:"9/8" },
+    { name:"Ga",  dev:"ग",   ratio:5/4,   label:"5/4" },
+    { name:"Ma",  dev:"म",   ratio:4/3,   label:"4/3" },
+    { name:"Pa",  dev:"प",   ratio:3/2,   label:"3/2" },
+    { name:"Dha", dev:"ध",   ratio:5/3,   label:"5/3" },
+    { name:"Ni",  dev:"नि",  ratio:15/8,  label:"15/8" },
+    { name:"Ṡa",  dev:"साँ", ratio:2,     label:"2" }
+  ];
+  SWARAS.forEach(function(s){ s.cents = 1200*Math.log2(s.ratio); });
+
+  // Sa choices, anchored in the C3–B3 octave so the male voice sits in a
+  // comfortable singing range. G = 196.00 Hz is the default.
+  var SA_NOTES = [
+    { name:"C",  hz:130.81 }, { name:"C♯", hz:138.59 },
+    { name:"D",  hz:146.83 }, { name:"D♯", hz:155.56 },
+    { name:"E",  hz:164.81 }, { name:"F",  hz:174.61 },
+    { name:"F♯", hz:185.00 }, { name:"G",  hz:196.00 },
+    { name:"G♯", hz:207.65 }, { name:"A",  hz:220.00 },
+    { name:"A♯", hz:233.08 }, { name:"B",  hz:246.94 }
+  ];
+
+  var state = {
+    noteIdx: 0,
+    voice: "male",           // "male" | "female"
+    saIdx: 7,                // G
+    playing: false,
+    listening: false
+  };
+
+  function saHz(){ return SA_NOTES[state.saIdx].hz; }
+  function targetHz(voice){
+    var f = saHz() * SWARAS[state.noteIdx].ratio;
+    return voice === "female" ? f * 2 : f;
+  }
+  function fmtHz(f){ return (f >= 500 ? f.toFixed(0) : f.toFixed(1)) + " Hz"; }
+
+  /* ---------- DOM ---------- */
+  var $ = function(id){ return document.getElementById(id); };
+  var targetDev = $("targetDev"), targetSwara = $("targetSwara"), targetFreq = $("targetFreq");
+  var playProgress = $("playProgress");
+  var noteGrid = $("noteGrid"), saGrid = $("saGrid"), scaleBody = $("scaleBody");
+  var listenBtn = $("listenBtn"), listenNote = $("listenNote");
+  var micBtn = $("micBtn"), micErr = $("micErr"), singUI = $("singUI"), idleMsg = $("idleMsg");
+  var heardSwara = $("heardSwara"), heardHz = $("heardHz"), centsVal = $("centsVal");
+  var needle = $("needle"), holdFill = $("holdFill"), holdLabel = $("holdLabel");
+  var verdict = $("verdict");
+  var holdLive = $("holdLive"), holdTimeEl = $("holdTime"), holdHint = $("holdHint");
+  var milestoneMsg = $("milestoneMsg");
+  var milestonePills = Array.prototype.slice.call(document.querySelectorAll(".milestone-pill"));
+  var statBestNote = $("statBestNote"), statBestNoteName = $("statBestNoteName");
+  var statBestOverall = $("statBestOverall"), statStreak = $("statStreak"), statTotal = $("statTotal");
+  var lastHoldMsg = $("lastHoldMsg"), resetStreaksBtn = $("resetStreaksBtn");
+
+  /* ---------- Note picker ---------- */
+  var noteBtns = [];
+  SWARAS.forEach(function(s, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "note-btn";
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.innerHTML = "";
+    var n = document.createElement("span"); n.className = "n"; n.textContent = s.name;
+    var d = document.createElement("span"); d.className = "d"; d.textContent = s.dev;
+    b.appendChild(n); b.appendChild(d);
+    b.addEventListener("click", function(){ selectNote(i); });
+    noteGrid.appendChild(b);
+    noteBtns.push(b);
+  });
+
+  function selectNote(i){
+    if (i !== state.noteIdx) endHold();
+    state.noteIdx = i;
+    noteBtns.forEach(function(b, j){ b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+    clearVerdict();
+    renderTarget();
+  }
+
+  /* ---------- Sa picker ---------- */
+  var saBtns = [];
+  SA_NOTES.forEach(function(sn, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = sn.name;
+    b.setAttribute("aria-pressed", i === state.saIdx ? "true" : "false");
+    b.addEventListener("click", function(){
+      if (i !== state.saIdx) endHold();
+      state.saIdx = i;
+      saBtns.forEach(function(x, j){ x.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+      clearVerdict();
+      renderTarget();
+    });
+    saGrid.appendChild(b);
+    saBtns.push(b);
+  });
+
+  function renderTarget(){
+    var s = SWARAS[state.noteIdx];
+    targetDev.textContent = s.dev;
+    targetSwara.textContent = s.name;
+    var saName = SA_NOTES[state.saIdx].name;
+    targetFreq.innerHTML = "Target: <b>" + fmtHz(targetHz(state.voice)) + "</b> · " +
+      state.voice + " reference · Sa = " + saName + " · just intonation";
+    listenNote.textContent = s.name;
+    var rows = "";
+    SWARAS.forEach(function(sw){
+      rows += "<tr><td>" + sw.name + "</td><td>" + sw.label + "</td><td>" +
+        (saHz() * sw.ratio).toFixed(1) + "</td></tr>";
+    });
+    scaleBody.innerHTML = rows;
+    renderStreaks();
+  }
+
+  /* ---------- Voice toggle ---------- */
+  var vMale = $("voiceMale"), vFemale = $("voiceFemale");
+  function setVoice(v){
+    state.voice = v;
+    vMale.setAttribute("aria-pressed", v === "male" ? "true" : "false");
+    vFemale.setAttribute("aria-pressed", v === "female" ? "true" : "false");
+    renderTarget();
+  }
+  vMale.addEventListener("click", function(){ setVoice("male"); });
+  vFemale.addEventListener("click", function(){ setVoice("female"); });
+
+  /* ---------- Reference voice synthesis ----------
+     A voice-like tone, not a recording: a sawtooth-rich harmonic source
+     (plus a sine sub for body) run through parallel band-pass "formant"
+     filters tuned for the vowel "aa", with an amplitude envelope and a
+     vibrato that eases in after the note settles. */
+  var actx = null;
+  function ensureCtx(){
+    if (!actx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      actx = new AC();
+    }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+
+  // "aa" formants (Hz): F1, F2, F3 with rough bandwidths.
+  var FORMANTS = {
+    male:   [ {f:730,  q:5, g:1.0}, {f:1090, q:7, g:0.55}, {f:2440, q:9, g:0.22} ],
+    female: [ {f:850,  q:5, g:1.0}, {f:1220, q:7, g:0.55}, {f:2810, q:9, g:0.22} ]
+  };
+  var playTimer = null, playStart = 0, playRAF = null;
+  var PLAY_MS = 2200;
+
+  function playReference(){
+    if (state.playing) return;
+    var ctx = ensureCtx();
+    var freq = targetHz(state.voice);
+    var t0 = ctx.currentTime + 0.03;
+    var dur = PLAY_MS / 1000;
+
+    var master = ctx.createGain();
+    master.gain.setValueAtTime(0, t0);
+    master.gain.linearRampToValueAtTime(0.85, t0 + 0.09);
+    master.gain.setValueAtTime(0.85, t0 + dur - 0.3);
+    master.gain.linearRampToValueAtTime(0, t0 + dur);
+    master.connect(ctx.destination);
+
+    // Breathiness / low body: gentle low-pass over everything.
+    var lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 4200; lp.Q.value = 0.4;
+    lp.connect(master);
+
+    // Harmonic source.
+    var src = ctx.createOscillator();
+    src.type = "sawtooth";
+    src.frequency.setValueAtTime(freq, t0);
+    // Vibrato: LFO on frequency, depth ramping in after 350 ms.
+    var lfo = ctx.createOscillator(); lfo.frequency.value = 5.4;
+    var lfoGain = ctx.createGain();
+    lfoGain.gain.setValueAtTime(0, t0);
+    lfoGain.gain.linearRampToValueAtTime(freq * 0.006, t0 + dur - 0.4);
+    lfo.connect(lfoGain); lfoGain.connect(src.frequency);
+
+    var formants = FORMANTS[state.voice];
+    formants.forEach(function(fm){
+      var bp = ctx.createBiquadFilter();
+      bp.type = "bandpass"; bp.frequency.value = fm.f; bp.Q.value = fm.q;
+      var g = ctx.createGain(); g.gain.value = fm.g;
+      src.connect(bp); bp.connect(g); g.connect(lp);
+    });
+    // A dry path so the pitch reads clearly even between formants.
+    var dry = ctx.createGain(); dry.gain.value = 0.35;
+    src.connect(dry); dry.connect(lp);
+    // Sub sine for chest body.
+    var sub = ctx.createOscillator(); sub.type = "sine"; sub.frequency.value = freq;
+    var subG = ctx.createGain(); subG.gain.value = 0.25;
+    sub.connect(subG); subG.connect(lp);
+
+    src.start(t0); sub.start(t0); lfo.start(t0);
+    src.stop(t0 + dur + 0.05); sub.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+
+    state.playing = true;
+    listenBtn.disabled = true;
+    listenBtn.innerHTML = "♪&ensp;Playing " + SWARAS[state.noteIdx].name + "…";
+    targetSwara.classList.add("playing");
+    playStart = performance.now();
+    (function tick(){
+      var p = Math.min(1, (performance.now() - playStart) / PLAY_MS);
+      playProgress.style.width = (p * 100).toFixed(1) + "%";
+      if (p < 1 && state.playing) playRAF = requestAnimationFrame(tick);
+    })();
+    playTimer = setTimeout(function(){
+      state.playing = false;
+      listenBtn.disabled = false;
+      listenBtn.innerHTML = "▶&ensp;Listen again — sing <span>" + SWARAS[state.noteIdx].name + "</span>";
+      targetSwara.classList.remove("playing");
+      playProgress.style.width = "0%";
+    }, PLAY_MS + 80);
+  }
+  listenBtn.addEventListener("click", playReference);
+
+  /* ---------- Pitch detection (autocorrelation) ---------- */
+  var stream = null, analyser = null, micSrc = null, rafId = null;
+  var buf = new Float32Array(2048);
+
+  function autoCorrelate(buffer, sampleRate){
+    var SIZE = buffer.length;
+    var rms = 0;
+    for (var i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.012) return -1;               // too quiet
+    var r1 = 0, r2 = SIZE - 1, thresh = 0.2;  // trim low-correlation edges
+    for (var a = 0; a < SIZE / 2; a++) if (Math.abs(buffer[a]) < thresh){ r1 = a; break; }
+    for (var b = 1; b < SIZE / 2; b++) if (Math.abs(buffer[SIZE - b]) < thresh){ r2 = SIZE - b; break; }
+    var sliced = buffer.slice(r1, r2);
+    var n = sliced.length;
+    if (n < 32) return -1;
+    var corr = new Array(n).fill(0);
+    for (var lag = 0; lag < n; lag++)
+      for (var j = 0; j < n - lag; j++) corr[lag] += sliced[j] * sliced[j + lag];
+    var d = 0;
+    while (d < n - 1 && corr[d] > corr[d + 1]) d++;
+    var maxv = -1, maxp = -1;
+    for (var k = d; k < n; k++) if (corr[k] > maxv){ maxv = corr[k]; maxp = k; }
+    if (maxp <= 0) return -1;
+    // Parabolic interpolation for sub-sample accuracy.
+    var x1 = corr[maxp - 1] || corr[maxp], x2 = corr[maxp], x3 = corr[maxp + 1] || corr[maxp];
+    var shift = 0;
+    var denom = x1 - 2 * x2 + x3;
+    if (denom !== 0) shift = 0.5 * (x1 - x3) / denom;
+    var freq = sampleRate / (maxp + shift);
+    if (freq < 60 || freq > 1200) return -1;
+    return freq;
+  }
+
+  // Fold a detected frequency into "cents from Sa within one octave"
+  // plus the nearest swara and the signed deviation from the target.
+  function analyse(freq){
+    var ratio = freq / saHz();
+    while (ratio >= 2) ratio /= 2;
+    while (ratio < 1) ratio *= 2;
+    var centsFromSa = 1200 * Math.log2(ratio);
+    var nearest = SWARAS[0], best = Infinity;
+    SWARAS.forEach(function(s){
+      var dd = Math.abs(centsFromSa - s.cents);
+      if (dd < best){ best = dd; nearest = s; }
+    });
+    var devTarget = centsFromSa - SWARAS[state.noteIdx].cents;
+    if (devTarget > 600) devTarget -= 1200;
+    if (devTarget < -600) devTarget += 1200;
+    return { nearest: nearest, devNearest: centsFromSa - nearest.cents, devTarget: devTarget };
+  }
+
+  /* ---------- Hold-time streaks (session only) ----------
+     In tune = within ±10 cents of the target — the same window that
+     turns the needle green and earns an "in tune" verdict above.
+     A brief 300 ms grace tolerates a single jittery frame; a hold
+     only ends once pitch has stayed out of tune / silent past it.
+     Holds under 0.25 s are treated as detector flicker, not attempts.
+     Nothing here is stored: all of it lives in memory and resets
+     when the page reloads. */
+  var IN_TUNE_CENTS = 10;
+  var SUCCESS_SEC = 3;
+  var GRACE_MS = 300;
+  var MIN_HOLD_SEC = 0.25;
+  var MILESTONES = [
+    { sec: 3,  msg: "✓ 3s — that’s a successful hold! Keep going…" },
+    { sec: 5,  msg: "5s — strong, steady hold!" },
+    { sec: 10, msg: "10s — excellent steadiness!" },
+    { sec: 15, msg: "15s — outstanding hold!" },
+    { sec: 20, msg: "20s — remarkable! A long, steady swara." }
+  ];
+  var streaks = {
+    current: 0,
+    totalSuccess: 0,
+    bestOverall: 0,
+    bestPerNote: SWARAS.map(function(){ return 0; }),
+    lastHold: null
+  };
+  var holdState = {
+    active: false,
+    noteIdx: 0,
+    startAt: 0,
+    lastInTuneAt: 0,
+    milestoneIdx: -1
+  };
+
+  function fmtSec(sec){ return sec.toFixed(1) + "s"; }
+
+  function renderStreaks(){
+    if (!statBestNote) return;
+    statBestNote.textContent = fmtSec(streaks.bestPerNote[state.noteIdx] || 0);
+    statBestNoteName.textContent = SWARAS[state.noteIdx].name;
+    statBestOverall.textContent = fmtSec(streaks.bestOverall);
+    statStreak.textContent = String(streaks.current);
+    statTotal.textContent = String(streaks.totalSuccess);
+    if (streaks.lastHold){
+      var lh = streaks.lastHold;
+      var noteName = SWARAS[lh.noteIdx].name;
+      if (lh.success){
+        lastHoldMsg.textContent = "Last hold: " + fmtSec(lh.sec) + " on " + noteName +
+          " — ✓ successful. Current streak: " + streaks.current + ".";
+      } else {
+        lastHoldMsg.textContent = "Last hold: " + fmtSec(lh.sec) + " on " + noteName +
+          " — under 3.0s, so the streak reset. Hold for 3.0s or more to start a new one.";
+      }
+    }
+  }
+
+  function setHoldDisplay(sec){
+    holdTimeEl.textContent = sec.toFixed(1);
+    milestonePills.forEach(function(pill){
+      var threshold = parseFloat(pill.getAttribute("data-sec"));
+      pill.classList.toggle("reached", holdState.active && sec >= threshold);
+    });
+  }
+
+  function resetHoldUI(){
+    holdLive.classList.remove("holding");
+    holdTimeEl.textContent = "0.0";
+    milestonePills.forEach(function(pill){ pill.classList.remove("reached"); });
+    milestoneMsg.className = "milestone";
+    milestoneMsg.textContent = "";
+    holdHint.textContent = "Stay within ±10 cents of the target to start a hold. 3.0s or more counts as a successful hold.";
+  }
+
+  function startHold(now){
+    holdState.active = true;
+    holdState.noteIdx = state.noteIdx;
+    holdState.startAt = now;
+    holdState.lastInTuneAt = now;
+    holdState.milestoneIdx = -1;
+    holdLive.classList.add("holding");
+    milestoneMsg.className = "milestone";
+    milestoneMsg.textContent = "";
+    holdHint.textContent = "Holding " + SWARAS[holdState.noteIdx].name + " — keep it steady…";
+    setHoldDisplay(0);
+  }
+
+  function updateHold(now){
+    var sec = (now - holdState.startAt) / 1000;
+    setHoldDisplay(sec);
+    // Bests update live, so passing your best feels immediate.
+    if (sec > (streaks.bestPerNote[holdState.noteIdx] || 0)){
+      streaks.bestPerNote[holdState.noteIdx] = sec;
+    }
+    if (sec > streaks.bestOverall) streaks.bestOverall = sec;
+    renderStreaks();
+    MILESTONES.forEach(function(m, i){
+      if (sec >= m.sec && holdState.milestoneIdx < i){
+        holdState.milestoneIdx = i;
+        milestoneMsg.textContent = m.msg;
+        milestoneMsg.className = "milestone show";
+      }
+    });
+  }
+
+  function endHold(){
+    if (!holdState.active) return;
+    var sec = (holdState.lastInTuneAt - holdState.startAt) / 1000;
+    var noteIdx = holdState.noteIdx;
+    holdState.active = false;
+    holdLive.classList.remove("holding");
+    if (sec < MIN_HOLD_SEC){
+      // Too brief to be a real attempt — detector flicker, not a failed hold.
+      resetHoldUI();
+      return;
+    }
+    if (sec > (streaks.bestPerNote[noteIdx] || 0)) streaks.bestPerNote[noteIdx] = sec;
+    if (sec > streaks.bestOverall) streaks.bestOverall = sec;
+    var success = sec >= SUCCESS_SEC;
+    if (success){
+      streaks.current += 1;
+      streaks.totalSuccess += 1;
+    } else {
+      streaks.current = 0;
+    }
+    streaks.lastHold = { noteIdx: noteIdx, sec: sec, success: success };
+    renderStreaks();
+    // Leave the finished time and its outcome visible until the next hold.
+    holdTimeEl.textContent = sec.toFixed(1);
+    milestonePills.forEach(function(pill){
+      var threshold = parseFloat(pill.getAttribute("data-sec"));
+      pill.classList.toggle("reached", sec >= threshold);
+    });
+    milestoneMsg.textContent = success
+      ? "✓ Hold ended — " + fmtSec(sec) + " on " + SWARAS[noteIdx].name + ". Successful hold — streak is now " + streaks.current + "."
+      : "Hold ended — " + fmtSec(sec) + " on " + SWARAS[noteIdx].name + ". Under 3.0s, so the streak resets.";
+    milestoneMsg.className = "milestone show";
+    holdHint.textContent = "Sing the target in tune again to start a new hold.";
+  }
+
+  function cancelHold(){
+    holdState.active = false;
+    resetHoldUI();
+  }
+
+  resetStreaksBtn.addEventListener("click", function(){
+    cancelHold();
+    streaks.current = 0;
+    streaks.totalSuccess = 0;
+    streaks.bestOverall = 0;
+    streaks.bestPerNote = SWARAS.map(function(){ return 0; });
+    streaks.lastHold = null;
+    renderStreaks();
+    lastHoldMsg.textContent = "Streaks reset. No holds recorded yet this session — turn on the mic above and hold a note in tune to start.";
+  });
+
+  /* Hold-to-verdict: collect recent target-deviation samples; when the
+     note has been present and steady for ~0.9 s, judge the median. */
+  var HOLD_MS = 900;
+  var samples = [];        // {t, dev}
+  var lastSignalAt = 0;
+
+  function clearVerdict(){
+    verdict.className = "verdict";
+    verdict.textContent = "";
+    samples = [];
+    holdFill.style.width = "0%";
+  }
+
+  function setVerdict(medianDev, heard){
+    var a = Math.abs(medianDev);
+    var dir = medianDev > 0 ? "sharp" : "flat";
+    var target = SWARAS[state.noteIdx].name;
+    verdict.className = "verdict show";
+    if (a > 100){
+      verdict.className += " off";
+      verdict.innerHTML = "That sounded closer to <b>" + heard.nearest.name + "</b> — aim for <b>" + target + "</b> and try again.";
+    } else if (a <= 10){
+      verdict.className += " good";
+      verdict.textContent = "✓ In tune — " + target + " held steady" +
+        (a >= 1 ? " (" + (medianDev > 0 ? "+" : "−") + Math.round(a) + " cents)" : "") + ".";
+    } else if (a <= 25){
+      verdict.className += " close";
+      verdict.textContent = "Close — " + Math.round(a) + " cents " + dir + ". A small " +
+        (dir === "sharp" ? "step down" : "lift") + " and " + target + " is yours.";
+    } else {
+      verdict.className += " off";
+      verdict.innerHTML = "<b>" + Math.round(a) + " cents " + dir + "</b> — " +
+        (dir === "sharp" ? "ease it down" : "push it up a touch") + " toward " + target + ".";
+    }
+  }
+
+  function median(arr){
+    var s = arr.slice().sort(function(x, y){ return x - y; });
+    return s[Math.floor(s.length / 2)];
+  }
+
+  function detectLoop(){
+    if (!state.listening) return;
+    analyser.getFloatTimeDomainData(buf);
+    var now = performance.now();
+    // Live input level, so "mic on but hearing nothing" is visible
+    // instead of looking like the mic isn't there at all.
+    var rmsSum = 0;
+    for (var li = 0; li < buf.length; li++) rmsSum += buf[li] * buf[li];
+    var rmsNow = Math.sqrt(rmsSum / buf.length);
+    if (levelFill) levelFill.style.width = Math.min(100, rmsNow * 300).toFixed(0) + "%";
+    if (rmsNow > levelPeak) levelPeak = rmsNow;
+    if (!silentWarned && listeningSince && now - listeningSince > 4000 && levelPeak < 0.004){
+      silentWarned = true;
+      levelLabel.textContent = "The mic is on but hearing almost nothing. Check it isn’t muted, and if a Microphone input picker appeared above, try the other input.";
+    }
+    var freq = autoCorrelate(buf, actx.sampleRate);
+
+    if (freq === -1){
+      if (holdState.active){
+        if (now - holdState.lastInTuneAt > GRACE_MS){
+          endHold();
+        } else {
+          setHoldDisplay((holdState.lastInTuneAt - holdState.startAt) / 1000);
+        }
+      }
+      if (now - lastSignalAt > 350){
+        heardSwara.textContent = "—";
+        heardHz.textContent = "";
+        centsVal.textContent = "–";
+        needle.style.left = "50%";
+        samples = [];
+        holdFill.style.width = "0%";
+        holdLabel.textContent = "Sing and hold the note steady…";
+      }
+    } else {
+      lastSignalAt = now;
+      var res = analyse(freq);
+      heardSwara.textContent = res.nearest.name;
+      heardHz.textContent = "· " + freq.toFixed(1) + " Hz";
+      var dev = res.devTarget;
+      centsVal.textContent = (dev > 0 ? "+" : dev < 0 ? "−" : "") + Math.abs(Math.round(dev));
+      var clamped = Math.max(-50, Math.min(50, dev));
+      needle.style.left = ((clamped + 50) / 100 * 100).toFixed(1) + "%";
+      needle.style.background = Math.abs(dev) <= 10 ? "var(--good)" : "var(--needle)";
+
+      if (Math.abs(dev) <= IN_TUNE_CENTS){
+        if (!holdState.active) startHold(now);
+        holdState.lastInTuneAt = now;
+        updateHold(now);
+      } else if (holdState.active){
+        if (now - holdState.lastInTuneAt > GRACE_MS){
+          endHold();
+        } else {
+          setHoldDisplay((holdState.lastInTuneAt - holdState.startAt) / 1000);
+        }
+      }
+
+      samples.push({ t: now, dev: dev });
+      while (samples.length && now - samples[0].t > 1400) samples.shift();
+      var span = samples.length > 1 ? now - samples[0].t : 0;
+      holdFill.style.width = Math.min(100, span / HOLD_MS * 100).toFixed(0) + "%";
+      if (span >= HOLD_MS){
+        var devs = samples.map(function(s){ return s.dev; });
+        var med = median(devs);
+        var spread = Math.max.apply(null, devs) - Math.min.apply(null, devs);
+        if (spread <= 45){
+          setVerdict(med, res);
+          holdLabel.textContent = "Held steady — verdict above. Sing again any time.";
+        } else {
+          holdLabel.textContent = "Nearly there — steady the note a little more…";
+        }
+      } else {
+        holdLabel.textContent = "Holding… " + Math.round(span / HOLD_MS * 100) + "%";
+      }
+    }
+    rafId = requestAnimationFrame(detectLoop);
+  }
+
+  function stopListening(){
+    endHold();
+    state.listening = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+    if (levelFill) levelFill.style.width = "0%";
+    if (levelLabel) levelLabel.textContent = "Input level — sing or speak to check the mic is actually hearing you.";
+    micBtn.textContent = "Enable microphone & start singing";
+    micBtn.classList.add("secondary");
+    micBtn.classList.remove("stop");
+    singUI.hidden = true;
+    idleMsg.hidden = false;
+    idleMsg.textContent = "Microphone off. Turn it back on whenever you’re ready to sing.";
+  }
+
+  /* ---------- Microphone diagnostics & device choice ----------
+     "Mic not detected" has several distinct causes, and each gets its
+     own message and remedy: no mic API in this browser/window,
+     permission blocked for the site, the hosting frame not allowing
+     the mic, no input device, a busy device, or the wrong input
+     selected when several exist (phone vs headset vs laptop). */
+  var micStatus = $("micStatus"), micHelp = $("micHelp");
+  var micDevices = $("micDevices"), micSelect = $("micSelect");
+  var micRetryBtn = $("micRetryBtn"), micReloadBtn = $("micReloadBtn");
+  var levelFill = $("levelFill"), levelLabel = $("levelLabel");
+  var currentDeviceId = null;
+  var levelPeak = 0, listeningSince = 0, silentWarned = false;
+
+  function setMicStatus(text){
+    micStatus.textContent = text || "";
+    micStatus.style.display = text ? "block" : "none";
+  }
+
+  // Android in-app browsers (WebViews — e.g. the browser built into an
+  // app) typically cannot pass the microphone to a page at all: the
+  // mediaDevices API is missing, or getUserMedia is blocked before any
+  // permission prompt appears. Detect that shell so it can be named
+  // plainly instead of looking like a broken mic.
+  function isInAppWebView(){
+    var ua = navigator.userAgent || "";
+    if (/Android/i.test(ua) && /\bwv\b/.test(ua)) return true;            // Android WebView token
+    if (/Android/i.test(ua) && /Version\/[\d.]+.*Chrome\//.test(ua)) return true; // older WebView UA shape
+    if (/(FBAN|FBAV|Instagram|Line\/|MicroMessenger)/i.test(ua)) return true;     // other in-app browsers
+    return false;
+  }
+
+  function micSupport(){
+    if (!window.isSecureContext) return "insecure";
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+      return isInAppWebView() ? "inapp" : "unsupported";
+    if (document.permissionsPolicy && !document.permissionsPolicy.allowsFeature("microphone"))
+      return isInAppWebView() ? "inapp" : "blocked-frame";
+    return "ok";
+  }
+
+  function reportMicProblem(kind, detail){
+    var msg;
+    switch (kind){
+      case "insecure":
+        msg = "This page isn’t in a secure context, so the browser hides the microphone entirely. Open it over https and try again.";
+        break;
+      case "inapp":
+        msg = "You’re viewing this inside another app’s built-in browser, and that in-app browser can’t pass your microphone through to the page — so no mic can ever be detected here, however healthy it is. The fix: open this same page in Chrome instead (use the app’s menu or Share → “Open in browser” / “Open in Chrome”), then tap Enable microphone there. Everything else — Listen, the notes, your Sa — works the same; only the sing-back needs Chrome.";
+        break;
+      case "unsupported":
+        msg = "This browser or in-app window doesn’t expose a microphone API, so the page can’t hear you at all. Open this page directly in Chrome or Safari and try again.";
+        break;
+      case "blocked-frame":
+        msg = "The window hosting this page hasn’t allowed microphone access, so the browser blocks the mic before ever asking you. Open the page directly in Chrome or Safari, then tap “Check the microphone again”.";
+        break;
+      case "denied":
+        msg = "Microphone permission is blocked for this site. Open this page’s site settings in your browser, set Microphone to Allow, then tap “Check the microphone again” (a reload may be needed). On a phone, also check in system Settings that the browser app itself may use the microphone.";
+        break;
+      case "notfound":
+        msg = "No microphone was found. Check a mic is plugged in / your headset is connected, and that your system input isn’t set to a disconnected device — then tap “Check the microphone again”.";
+        break;
+      case "busy":
+        msg = "The microphone is busy or couldn’t be read — another app, call, or tab may be holding it. Close it and tap “Check the microphone again”.";
+        break;
+      case "overconstrained":
+        msg = "The selected microphone couldn’t be opened. It may have been unplugged — tap “Check the microphone again” to fall back to the default input.";
+        break;
+      default:
+        msg = "The microphone couldn’t be started" + (detail ? " (" + detail + ")" : "") + ". Work through the checks below, then tap “Check the microphone again”.";
+    }
+    micErr.textContent = msg + " The Listen button above still works without the mic.";
+    micErr.className = "err show";
+    micHelp.hidden = false;
+  }
+
+  function refreshMicPermissionNote(){
+    if (micSupport() !== "ok") return;
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    navigator.permissions.query({ name: "microphone" }).then(function(p){
+      p.onchange = refreshMicPermissionNote;
+      if (state.listening) return;
+      if (p.state === "granted"){
+        setMicStatus("Microphone permission is already granted for this site — tap the button above to start.");
+      } else if (p.state === "denied"){
+        setMicStatus("Microphone permission is currently blocked for this site.");
+        reportMicProblem("denied");
+      } else {
+        setMicStatus("");
+      }
+    }).catch(function(){});
+  }
+
+  function refreshDeviceList(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then(function(devices){
+      var inputs = devices.filter(function(d){ return d.kind === "audioinput"; });
+      if (inputs.length < 2){ micDevices.hidden = true; return; }
+      micSelect.innerHTML = "";
+      inputs.forEach(function(d, i){
+        var opt = document.createElement("option");
+        opt.value = d.deviceId;
+        opt.textContent = d.label || ("Microphone " + (i + 1));
+        if (d.deviceId === currentDeviceId) opt.selected = true;
+        micSelect.appendChild(opt);
+      });
+      micDevices.hidden = false;
+    }).catch(function(){});
+  }
+
+  function startListening(){
+    micErr.className = "err";
+    micErr.textContent = "";
+    var support = micSupport();
+    if (support !== "ok"){ reportMicProblem(support); return; }
+    micHelp.hidden = true;
+    setMicStatus("");
+    ensureCtx();
+    var audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    if (currentDeviceId) audio.deviceId = { exact: currentDeviceId };
+    navigator.mediaDevices.getUserMedia({ audio: audio }).then(function(s){
+      stream = s;
+      // A suspended context makes the analyser read pure silence even
+      // with a working mic — resume again now the stream exists.
+      if (actx.state === "suspended") actx.resume();
+      var track = stream.getAudioTracks()[0];
+      if (track){
+        currentDeviceId = track.getSettings().deviceId || currentDeviceId;
+        track.onended = function(){
+          if (state.listening){ stopListening(); reportMicProblem("notfound"); }
+        };
+      }
+      micSrc = actx.createMediaStreamSource(stream);
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 2048;
+      micSrc.connect(analyser);
+      state.listening = true;
+      samples = [];
+      lastSignalAt = 0;
+      levelPeak = 0;
+      silentWarned = false;
+      listeningSince = performance.now();
+      cancelHold();
+      clearVerdict();
+      singUI.hidden = false;
+      idleMsg.hidden = true;
+      micBtn.textContent = "■  Stop microphone";
+      micBtn.classList.remove("secondary");
+      micBtn.classList.add("stop");
+      setMicStatus(track && track.label ? "Using: " + track.label : "");
+      refreshDeviceList();
+      detectLoop();
+    }).catch(function(err){
+      var name = err && err.name;
+      if (name === "NotAllowedError" || name === "SecurityError"){
+        // In an in-app WebView a NotAllowedError usually means the host
+        // app never handed the mic over — no prompt was ever shown.
+        if (isInAppWebView()) reportMicProblem("inapp");
+        else reportMicProblem(micSupport() === "blocked-frame" ? "blocked-frame" : "denied");
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError"){
+        reportMicProblem("notfound");
+      } else if (name === "NotReadableError" || name === "TrackStartError"){
+        reportMicProblem("busy");
+      } else if (name === "OverconstrainedError"){
+        currentDeviceId = null;
+        reportMicProblem("overconstrained");
+      } else {
+        reportMicProblem("unknown", name || "unknown error");
+      }
+    });
+  }
+
+  micBtn.addEventListener("click", function(){
+    if (state.listening){ stopListening(); return; }
+    startListening();
+  });
+  micRetryBtn.addEventListener("click", function(){
+    if (!state.listening) startListening();
+  });
+  micReloadBtn.addEventListener("click", function(){ location.reload(); });
+  micSelect.addEventListener("change", function(){
+    currentDeviceId = micSelect.value || null;
+    if (state.listening){ stopListening(); startListening(); }
+  });
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener){
+    navigator.mediaDevices.addEventListener("devicechange", refreshDeviceList);
+  }
+  refreshMicPermissionNote();
+  // If this window can never reach a mic (in-app browser, blocked
+  // frame, insecure context), say so up front instead of letting the
+  // first tap on the mic button be the moment it fails.
+  (function announceMicSupport(){
+    var support = micSupport();
+    if (support !== "ok"){
+      setMicStatus("The microphone can’t be reached in this browser window — here’s why, and what works instead:");
+      reportMicProblem(support);
+    }
+  })();
+
+  renderTarget();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
