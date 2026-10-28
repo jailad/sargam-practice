@@ -6,10 +6,6 @@
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:," />
 <title>Sargam Practice</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<meta name="theme-color" content="#1a1512">
-
 <style>
   :root{
     color-scheme: light dark;
@@ -313,6 +309,8 @@
   footer p{font-size:12.5px; color:var(--muted); line-height:1.6; margin:0 0 8px}
   footer p b{color:var(--ink)}
 </style>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#7c2d12">
 </head>
 <body>
 <main>
@@ -339,7 +337,7 @@
       <button type="button" id="voiceFemale" aria-pressed="false">Female voice</button>
     </div>
     <button type="button" class="btn" id="listenBtn">▶&ensp;Listen — sing <span id="listenNote">Sa</span></button>
-    <p class="fineprint">Honest fine print: this is not a recording of a person. The prototype <b>synthesizes</b> a voice-like tone — a rich harmonic source shaped by formant filters for the vowel “aa”, with a touch of vibrato. Male and female differ in pitch (female sings the same note an octave up) and in formant placement. Real recorded reference voices are a possible v2 — they aren’t faked here.</p>
+    <p class="fineprint">Honest fine print: this is still not a recording of a person — but it is now synthesized to be heard as <b>sung</b>. The tone starts from a glottal-pulse wave (the buzz real vocal folds make, mellower than a synth sawtooth), shaped by “aa” formant filters that glide into place as a mouth opens, with a breath of noise at the onset, a small pitch scoop as the voice settles, slow pitch drift, and vibrato that eases in unevenly — the little imperfections a held human note has and a machine tone doesn’t. A touch of room warmth sits behind it. Male and female differ in pitch (female sings the same note an octave up) and in formant placement. Real recorded reference voices remain a possible future step — they aren’t faked here.</p>
   </section>
 
   <!-- Sing and compare -->
@@ -595,10 +593,16 @@
   vFemale.addEventListener("click", function(){ setVoice("female"); });
 
   /* ---------- Reference voice synthesis ----------
-     A voice-like tone, not a recording: a sawtooth-rich harmonic source
-     (plus a sine sub for body) run through parallel band-pass "formant"
-     filters tuned for the vowel "aa", with an amplitude envelope and a
-     vibrato that eases in after the note settles. */
+     A voice-like tone, not a recording — but built to be heard as sung,
+     not generated. The source is a glottal-pulse wave (the buzz vocal
+     folds actually make, mellower than a raw sawtooth) run through
+     parallel band-pass "formant" filters for the vowel "aa" that glide
+     in from a neutral mouth shape. Around it: a breath of filtered
+     noise at the onset, a small pitch scoop as the voice settles, slow
+     pitch drift, vibrato that eases in late with an uneven rate and a
+     matching faint tremolo, a soft breath-led envelope, and a touch of
+     generated small-room warmth. The human cues are the imperfections;
+     a ruler-straight, instantly-on tone is what reads as robotic. */
   var actx = null;
   function ensureCtx(){
     if (!actx){
@@ -614,6 +618,41 @@
     male:   [ {f:730,  q:5, g:1.0}, {f:1090, q:7, g:0.55}, {f:2440, q:9, g:0.22} ],
     female: [ {f:850,  q:5, g:1.0}, {f:1220, q:7, g:0.55}, {f:2810, q:9, g:0.22} ]
   };
+  // Neutral (schwa-like) formant positions the vowel glides in from.
+  var FORMANT_START = { male: [520, 1480, 2520], female: [580, 1580, 2680] };
+
+  var roomImpulse = null, breathBuffer = null;
+  function makeGlottalWave(ctx, female){
+    var n = 40;
+    var real = new Float32Array(n + 1), imag = new Float32Array(n + 1);
+    for (var i = 1; i <= n; i++){
+      // Harmonics roll off faster than a sawtooth's, with a gentle lift
+      // on the 2nd and 3rd, as in real phonation.
+      var amp = 1 / Math.pow(i, female ? 1.15 : 1.35);
+      if (i === 2) amp *= 1.15;
+      if (i === 3) amp *= 1.08;
+      imag[i] = amp;
+    }
+    return ctx.createPeriodicWave(real, imag);
+  }
+  function makeRoomImpulse(ctx){
+    if (roomImpulse) return roomImpulse;
+    var rate = ctx.sampleRate, len = Math.floor(rate * 0.38);
+    roomImpulse = ctx.createBuffer(2, len, rate);
+    for (var ch = 0; ch < 2; ch++){
+      var d = roomImpulse.getChannelData(ch);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8);
+    }
+    return roomImpulse;
+  }
+  function makeNoiseBuffer(ctx){
+    if (breathBuffer) return breathBuffer;
+    var rate = ctx.sampleRate, len = Math.floor(rate * 2);
+    breathBuffer = ctx.createBuffer(1, len, rate);
+    var d = breathBuffer.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return breathBuffer;
+  }
   var playTimer = null, playStart = 0, playRAF = null;
   var PLAY_MS = 2200;
 
@@ -625,45 +664,131 @@
     var dur = PLAY_MS / 1000;
 
     var master = ctx.createGain();
+    // Slower, breath-led attack with a gentle mid-note swell: a real
+    // held note doesn't switch on at full volume and sit flat.
     master.gain.setValueAtTime(0, t0);
-    master.gain.linearRampToValueAtTime(0.85, t0 + 0.09);
-    master.gain.setValueAtTime(0.85, t0 + dur - 0.3);
+    master.gain.linearRampToValueAtTime(0.2, t0 + 0.05);
+    master.gain.linearRampToValueAtTime(0.86, t0 + 0.24);
+    master.gain.linearRampToValueAtTime(0.93, t0 + dur * 0.55);
+    master.gain.setValueAtTime(0.93, t0 + dur - 0.34);
     master.gain.linearRampToValueAtTime(0, t0 + dur);
     master.connect(ctx.destination);
 
-    // Breathiness / low body: gentle low-pass over everything.
-    var lp = ctx.createBiquadFilter();
-    lp.type = "lowpass"; lp.frequency.value = 4200; lp.Q.value = 0.4;
-    lp.connect(master);
+    // A touch of small-room warmth behind the voice — a generated
+    // impulse, no recording — so the note sits in a space, not a vacuum.
+    var verb = ctx.createConvolver();
+    verb.buffer = makeRoomImpulse(ctx);
+    var wet = ctx.createGain(); wet.gain.value = 0.13;
+    master.connect(verb); verb.connect(wet); wet.connect(ctx.destination);
 
-    // Harmonic source.
+    // Voice bus: carries a faint tremolo once the vibrato settles.
+    var bus = ctx.createGain(); bus.gain.value = 1;
+    bus.connect(master);
+
+    // Gentle low-pass over everything, opening as the note settles —
+    // a real voice brightens slightly once the breath is flowing.
+    var lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.Q.value = 0.4;
+    lp.frequency.setValueAtTime(2500, t0);
+    lp.frequency.linearRampToValueAtTime(4300, t0 + 0.3);
+    lp.connect(bus);
+
+    // Harmonic source: a glottal-pulse wave instead of a raw sawtooth,
+    // so the buzz reads as a throat rather than a synth.
     var src = ctx.createOscillator();
-    src.type = "sawtooth";
-    src.frequency.setValueAtTime(freq, t0);
-    // Vibrato: LFO on frequency, depth ramping in after 350 ms.
-    var lfo = ctx.createOscillator(); lfo.frequency.value = 5.4;
+    src.setPeriodicWave(makeGlottalWave(ctx, state.voice === "female"));
+
+    // Pitch contour: voices scoop in slightly flat, overshoot a hair,
+    // settle, then fall off a touch as the breath ends.
+    function pitchContour(osc){
+      osc.frequency.setValueAtTime(freq * 0.93, t0);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.012, t0 + 0.13);
+      osc.frequency.exponentialRampToValueAtTime(freq, t0 + 0.3);
+      osc.frequency.setValueAtTime(freq, t0 + dur - 0.22);
+      osc.frequency.linearRampToValueAtTime(freq * 0.986, t0 + dur);
+    }
+    pitchContour(src);
+
+    // Vibrato that eases in late, like a singer's, with an uneven rate:
+    // a slow wobble on the vibrato speed itself keeps it from ticking
+    // along like a machine.
+    var lfo = ctx.createOscillator(); lfo.type = "sine";
+    lfo.frequency.value = state.voice === "female" ? 5.5 : 5.2;
     var lfoGain = ctx.createGain();
     lfoGain.gain.setValueAtTime(0, t0);
-    lfoGain.gain.linearRampToValueAtTime(freq * 0.006, t0 + dur - 0.4);
+    lfoGain.gain.setValueAtTime(0, t0 + 0.3);
+    lfoGain.gain.linearRampToValueAtTime(freq * 0.0052, t0 + 1.0);
+    lfoGain.gain.setValueAtTime(freq * 0.0052, t0 + dur - 0.3);
+    lfoGain.gain.linearRampToValueAtTime(freq * 0.003, t0 + dur);
     lfo.connect(lfoGain); lfoGain.connect(src.frequency);
+    var rateWobble = ctx.createOscillator(); rateWobble.frequency.value = 0.37;
+    var rateWobbleGain = ctx.createGain(); rateWobbleGain.gain.value = 0.28;
+    rateWobble.connect(rateWobbleGain); rateWobbleGain.connect(lfo.frequency);
+
+    // Slow pitch drift — the small wander of a real held note.
+    var drift1 = ctx.createOscillator(); drift1.frequency.value = 0.29;
+    var drift1Gain = ctx.createGain(); drift1Gain.gain.value = freq * 0.0016;
+    drift1.connect(drift1Gain); drift1Gain.connect(src.frequency);
+    var drift2 = ctx.createOscillator(); drift2.frequency.value = 0.83;
+    var drift2Gain = ctx.createGain(); drift2Gain.gain.value = freq * 0.0008;
+    drift2.connect(drift2Gain); drift2Gain.connect(src.frequency);
+
+    // Faint tremolo in step with the vibrato, on the voice bus.
+    var tremGain = ctx.createGain(); tremGain.gain.value = 0;
+    tremGain.gain.setValueAtTime(0, t0 + 0.3);
+    tremGain.gain.linearRampToValueAtTime(0.03, t0 + 1.0);
+    lfo.connect(tremGain); tremGain.connect(bus.gain);
 
     var formants = FORMANTS[state.voice];
-    formants.forEach(function(fm){
+    var formantStarts = FORMANT_START[state.voice];
+    formants.forEach(function(fm, fi){
       var bp = ctx.createBiquadFilter();
-      bp.type = "bandpass"; bp.frequency.value = fm.f; bp.Q.value = fm.q;
+      bp.type = "bandpass"; bp.Q.value = fm.q;
+      // Formants glide in from a neutral vowel shape, the way a mouth
+      // opens into "aa", instead of snapping on fully formed.
+      bp.frequency.setValueAtTime(formantStarts[fi], t0);
+      bp.frequency.exponentialRampToValueAtTime(fm.f, t0 + 0.2);
       var g = ctx.createGain(); g.gain.value = fm.g;
       src.connect(bp); bp.connect(g); g.connect(lp);
     });
     // A dry path so the pitch reads clearly even between formants.
     var dry = ctx.createGain(); dry.gain.value = 0.35;
     src.connect(dry); dry.connect(lp);
-    // Sub sine for chest body.
-    var sub = ctx.createOscillator(); sub.type = "sine"; sub.frequency.value = freq;
-    var subG = ctx.createGain(); subG.gain.value = 0.25;
+    // Sub sine for chest body, following the same pitch contour,
+    // vibrato and drift as the main voice.
+    var sub = ctx.createOscillator(); sub.type = "sine";
+    pitchContour(sub);
+    lfoGain.connect(sub.frequency);
+    drift1Gain.connect(sub.frequency);
+    drift2Gain.connect(sub.frequency);
+    var subG = ctx.createGain(); subG.gain.value = 0.22;
     sub.connect(subG); subG.connect(lp);
+    // A whisper of the octave harmonic for air and presence.
+    var air = ctx.createOscillator(); air.type = "sine";
+    air.frequency.setValueAtTime(freq * 2 * 0.93, t0);
+    air.frequency.exponentialRampToValueAtTime(freq * 2 * 1.012, t0 + 0.13);
+    air.frequency.exponentialRampToValueAtTime(freq * 2, t0 + 0.3);
+    var airG = ctx.createGain(); airG.gain.value = 0.05;
+    air.connect(airG); airG.connect(lp);
 
-    src.start(t0); sub.start(t0); lfo.start(t0);
-    src.stop(t0 + dur + 0.05); sub.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+    // Breath: a puff of filtered noise at the onset that thins to a
+    // whisper under the note — the sound of air moving, which a pure
+    // oscillator never makes.
+    var noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx);
+    noise.loop = true;
+    var noiseBp = ctx.createBiquadFilter();
+    noiseBp.type = "bandpass"; noiseBp.frequency.value = 1700; noiseBp.Q.value = 0.5;
+    var noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, t0);
+    noiseGain.gain.linearRampToValueAtTime(0.06, t0 + 0.06);
+    noiseGain.gain.linearRampToValueAtTime(0.016, t0 + 0.32);
+    noiseGain.gain.setValueAtTime(0.016, t0 + dur - 0.3);
+    noiseGain.gain.linearRampToValueAtTime(0, t0 + dur);
+    noise.connect(noiseBp); noiseBp.connect(noiseGain); noiseGain.connect(lp);
+
+    var nodes = [src, sub, air, lfo, rateWobble, drift1, drift2, noise];
+    nodes.forEach(function(n){ n.start(t0); n.stop(t0 + dur + 0.05); });
 
     state.playing = true;
     listenBtn.disabled = true;
@@ -1227,13 +1352,8 @@
   renderTarget();
 })();
 </script>
-
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function () {});
-  });
-}
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); }); }
 </script>
 </body>
 </html>
