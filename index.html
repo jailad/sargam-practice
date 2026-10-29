@@ -337,7 +337,7 @@
       <button type="button" id="voiceFemale" aria-pressed="false">Female voice</button>
     </div>
     <button type="button" class="btn" id="listenBtn">▶&ensp;Listen — sing <span id="listenNote">Sa</span></button>
-    <p class="fineprint">Honest fine print: this is still not a recording of a person — but it is now synthesized to be heard as <b>sung</b>. The tone starts from a glottal-pulse wave (the buzz real vocal folds make, mellower than a synth sawtooth), shaped by “aa” formant filters that glide into place as a mouth opens, with a breath of noise at the onset, a small pitch scoop as the voice settles, slow pitch drift, and vibrato that eases in unevenly — the little imperfections a held human note has and a machine tone doesn’t. A touch of room warmth sits behind it. Male and female differ in pitch (female sings the same note an octave up) and in formant placement. Real recorded reference voices remain a possible future step — they aren’t faked here.</p>
+    <p class="fineprint">Honest fine print: this is still not a recording of a person — but it is now synthesized to be heard as <b>sung</b>. The tone starts from a glottal-pulse wave (the buzz real vocal folds make, mellower than a synth sawtooth), shaped by “aa” formant filters that glide into place as a mouth opens, with a breath of noise that puffs at the onset and then all but disappears, a small pitch scoop as the voice settles, and random pitch wander and jitter generated as genuinely random pitch movement — wander roaming roughly ±10–20 cents across the hold, centred on the target pitch (each random contour is zero-meaned and loops about once a second, so it averages out over the note and wanders around it rather than drifting away from it), and fine jitter calibrated separately for each voice, lighter for the male voice and stronger for the female — both made rougher and faster-changing than the earliest builds, so the pitch wobbles unpredictably rather than gliding on a smooth curve, and in this build the male jitter alone changes character altogether: instead of a smoothed contour it is now a stepped random detune — each random value held flat for about three milliseconds, then jumping straight to the next with no smoothing in between — so successive cycles of his lower note get genuinely independent nudges instead of sharing one smoothed value, sized to aim for the middle of the natural range — since the same amount of pitch movement reads differently at their two pitches — instead of a ruler-straight line, and vibrato at a singer’s depth that eases in late and unevenly, plus a gentle breathing in loudness: a slightly deeper slow tremolo and a touch more cycle-to-cycle shimmer, so the held note’s volume varies a little instead of sitting flat: the little imperfections a held human note has and a machine tone doesn’t. The male voice is also mixed brighter than before, with less bare fundamental and more of its “aa” formant body carrying the sound — its brightest lift has been eased back further, and the second “aa” formant re-centred lower, so that formant sits nearer its natural place. A touch of room warmth sits behind it. Male and female differ in pitch (female sings the same note an octave up) and in formant placement. Real recorded reference voices remain a possible future step — they aren’t faked here.</p>
   </section>
 
   <!-- Sing and compare -->
@@ -613,10 +613,33 @@
     return actx;
   }
 
-  // "aa" formants (Hz): F1, F2, F3 with rough bandwidths.
+  // "aa" formants (Hz): F1, F2, F3. Voice v2 (per the E-5 audio eval):
+  // the formant paths carry the voice — gains up, Qs down a notch —
+  // instead of garnishing a dominant dry tone. Voice v3 (per the v2
+  // re-run of that eval): the male mix was still fundamental-heavy and
+  // dark (centroid 484 Hz vs a ~700 Hz target) and its measured F1 sat
+  // at 642 Hz, pulled low by the broad resonance over the glottal
+  // rolloff — so the male F1 path alone is raised and narrowed (Q 5)
+  // to hold its peak at 730 Hz, and the upper male formants gain
+  // energy. The female recipe already passed; it is unchanged here.
+  // Voice v4 (per the v3 re-run): male F1 (718 Hz, PASS) is left
+  // exactly as v3 set it, but male F2 measured at 1286 Hz (+18% vs
+  // the 1090 Hz "aa" target) after v3's brightening re-weighted the
+  // 1–1.5 kHz region — so the male F2 path alone is re-centred
+  // slightly low (1090 → 1050 Hz) and strengthened a touch (gain
+  // 1.0 → 1.15) to anchor the resonance nearer the target, paired
+  // with the high-shelf trim below. Female formants are unchanged.
+  // Voice v5 (per the v4 re-run): male F2 still measured at
+  // 1244 Hz (+14.1%) in v4, so the male F2 path alone is re-centred
+  // once more (1050 → 1000 Hz, same Q and gain) and the male high
+  // shelf is eased further (+2.0 → +1.0 dB, below) to pull the
+  // measured resonance toward the 1090 Hz target. Male F1
+  // (730 Hz, PASS in v3 and v4) is untouched, and the trim is kept
+  // small enough to protect the passing male centroid (770–784 Hz
+  // in v4, target ≥ ~700 Hz). Female formants are unchanged.
   var FORMANTS = {
-    male:   [ {f:730,  q:5, g:1.0}, {f:1090, q:7, g:0.55}, {f:2440, q:9, g:0.22} ],
-    female: [ {f:850,  q:5, g:1.0}, {f:1220, q:7, g:0.55}, {f:2810, q:9, g:0.22} ]
+    male:   [ {f:730,  q:5, g:1.8}, {f:1000, q:6, g:1.15}, {f:2440, q:8, g:0.55} ],
+    female: [ {f:850,  q:4, g:1.3}, {f:1220, q:6, g:0.8}, {f:2810, q:8, g:0.35} ]
   };
   // Neutral (schwa-like) formant positions the vowel glides in from.
   var FORMANT_START = { male: [520, 1480, 2520], female: [580, 1580, 2680] };
@@ -627,8 +650,12 @@
     var real = new Float32Array(n + 1), imag = new Float32Array(n + 1);
     for (var i = 1; i <= n; i++){
       // Harmonics roll off faster than a sawtooth's, with a gentle lift
-      // on the 2nd and 3rd, as in real phonation.
-      var amp = 1 / Math.pow(i, female ? 1.15 : 1.35);
+      // on the 2nd and 3rd, as in real phonation. Voice v3: the male
+      // source itself is brightened (a shallower rolloff, 1.35 → 1.12)
+      // because EQ and mix changes alone left it dark, while the
+      // female source darkens slightly (1.3 → 1.45) — her measured
+      // spectral tilt was too shallow (−3.8 dB/oct vs −5…−8 human).
+      var amp = 1 / Math.pow(i, female ? 1.45 : 1.12);
       if (i === 2) amp *= 1.15;
       if (i === 3) amp *= 1.08;
       imag[i] = amp;
@@ -639,9 +666,21 @@
     if (roomImpulse) return roomImpulse;
     var rate = ctx.sampleRate, len = Math.floor(rate * 0.38);
     roomImpulse = ctx.createBuffer(2, len, rate);
+    // Sparse damped reflections, not a white-noise wash (the v1 noise
+    // impulse dragged the male render's harmonic-to-noise ratio down):
+    // a handful of discrete reflections, each a short noise burst that
+    // decays inside itself, spaced and fading like a small room.
+    var delays = [0.016, 0.029, 0.043, 0.061, 0.082, 0.107, 0.136, 0.171, 0.214, 0.268, 0.331];
     for (var ch = 0; ch < 2; ch++){
       var d = roomImpulse.getChannelData(ch);
-      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8);
+      delays.forEach(function(delay, k){
+        var start = Math.floor((delay + (ch ? 0.0017 : 0)) * rate);
+        var burst = Math.floor(rate * 0.014);
+        var amp = 0.55 * Math.pow(0.68, k);
+        for (var j = 0; j < burst && start + j < len; j++){
+          d[start + j] += (Math.random() * 2 - 1) * amp * Math.exp(-3.5 * j / burst);
+        }
+      });
     }
     return roomImpulse;
   }
@@ -653,6 +692,110 @@
     for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     return breathBuffer;
   }
+  // Smooth random pitch-perturbation buffers (voice v3, centred in
+  // v4). The v2 eval found the old design's flaw: audio-rate white
+  // noise pushed through a 3 Hz lowpass keeps only ~1% of its RMS, so
+  // the ±14/±6-cent gain values delivered ~0.1 cents at the oscillator
+  // — jitter measured 0.072% against a 0.2% human floor. These buffers
+  // are generated at control rate instead: random points a fixed
+  // interval apart, smoothly (cosine) interpolated between them,
+  // looped seamlessly, and normalized to unit RMS. Played straight
+  // into a detune gain — no lowpass in the path — the gain in cents
+  // IS the delivered RMS excursion, not a number the filter then
+  // throws away. Voice v4 (per the v3 re-run): each buffer is now
+  // zero-meaned over its loop (its mean is subtracted before the RMS
+  // normalization) so the perturbation is centred on the target
+  // pitch — in v3 the un-centred random walk read as one-way drift
+  // and pushed the female steady pitch to +9.9 cents, the edge of
+  // the ±10-cent window.
+  // Voice v5 (per the v4 re-run): zero-meaning centred the loop but
+  // not the heard window — the female steady pitch still sat
+  // +7 to +10.5 cents sharp, because the ~2.2 s note hears only one
+  // segment of the wander buffer's 4 s loop, whose local mean need
+  // not be zero. The wander buffer's loop is therefore shortened to
+  // ~1 s (see the makeSmoothBuffer call in playReference): the note
+  // now spans about two full wander loops, so the heard-window mean
+  // of the wander is near zero and her steady pitch should centre
+  // within a few cents. The jitter buffer keeps its 4 s loop — the
+  // male jitter setting it carries is proven in-band in v4 and its
+  // gain stays exactly as is.
+  var smoothBuffers = {};
+  function makeSmoothBuffer(ctx, key, pointIntervalSec, loopSec){
+    if (smoothBuffers[key]) return smoothBuffers[key];
+    var rate = ctx.sampleRate, durSec = loopSec || 4, len = Math.floor(rate * durSec);
+    var buf = ctx.createBuffer(1, len, rate);
+    var d = buf.getChannelData(0);
+    var nPts = Math.max(4, Math.round(durSec / pointIntervalSec));
+    var pts = [];
+    for (var p = 0; p < nPts; p++) pts.push(Math.random() * 2 - 1);
+    var step = len / nPts;
+    for (var i = 0; i < len; i++){
+      var pos = i / step;
+      var i0 = Math.floor(pos) % nPts, i1 = (i0 + 1) % nPts;
+      var frac = pos - Math.floor(pos);
+      var s = frac * frac * (3 - 2 * frac); // smoothstep interpolation
+      d[i] = pts[i0] + (pts[i1] - pts[i0]) * s;
+    }
+    // Zero-mean over the loop (v4): subtract the buffer's own mean
+    // so the wander/jitter decorrelates from steady-pitch error and
+    // the loop's average detune is exactly 0 cents.
+    var mean = 0;
+    for (var m = 0; m < len; m++) mean += d[m];
+    mean /= len;
+    for (var n = 0; n < len; n++) d[n] -= mean;
+    // Normalize to unit RMS so the detune gain states the true
+    // delivered excursion in cents.
+    var sum = 0;
+    for (var j = 0; j < len; j++) sum += d[j] * d[j];
+    var rms = Math.sqrt(sum / len) || 1;
+    for (var k = 0; k < len; k++) d[k] /= rms;
+    smoothBuffers[key] = buf;
+    return buf;
+  }
+  // Stepped random detune buffer (voice v9, male jitter only). The
+  // v8 gate report diagnosed the male jitter as variance-limited
+  // under a smoothed contour: successive cycles share interpolated
+  // contour values, so the measured cycle-to-cycle movement swings
+  // draw-to-draw instead of centring. This buffer is the structural
+  // opposite of makeSmoothBuffer — random points are held FLAT
+  // (sample-and-hold) for one step interval (~3 ms) and then jump
+  // straight to the next value with NO interpolation or smoothing
+  // of any kind, so at the male cycle scale (~5.1 ms) successive
+  // cycles receive genuinely independent detune values and cannot
+  // share a contour value. Like the smooth buffers it is
+  // zero-meaned over its loop and normalized to unit RMS, so the
+  // detune gain in cents IS the delivered RMS excursion of the
+  // stepped component; subtracting one constant and scaling
+  // uniformly cannot smooth the steps, and successive-step
+  // differences keep their exact shape.
+  var steppedBuffers = {};
+  function makeSteppedBuffer(ctx, key, stepSec, loopSec){
+    if (steppedBuffers[key]) return steppedBuffers[key];
+    var rate = ctx.sampleRate, durSec = loopSec || 4, len = Math.floor(rate * durSec);
+    var buf = ctx.createBuffer(1, len, rate);
+    var d = buf.getChannelData(0);
+    var nSteps = Math.max(4, Math.round(durSec / stepSec));
+    var pts = [];
+    for (var p = 0; p < nSteps; p++) pts.push(Math.random() * 2 - 1);
+    var stepLen = len / nSteps;
+    for (var i = 0; i < len; i++){
+      // Sample-and-hold: the step's own value, exactly — no
+      // interpolation between steps, by design.
+      d[i] = pts[Math.floor(i / stepLen) % nSteps];
+    }
+    // Zero-mean over the loop, then normalize to unit RMS — the
+    // same centring/scaling as makeSmoothBuffer.
+    var mean = 0;
+    for (var m = 0; m < len; m++) mean += d[m];
+    mean /= len;
+    for (var n = 0; n < len; n++) d[n] -= mean;
+    var sum = 0;
+    for (var j = 0; j < len; j++) sum += d[j] * d[j];
+    var rms = Math.sqrt(sum / len) || 1;
+    for (var k = 0; k < len; k++) d[k] /= rms;
+    steppedBuffers[key] = buf;
+    return buf;
+  }
   var playTimer = null, playStart = 0, playRAF = null;
   var PLAY_MS = 2200;
 
@@ -663,23 +806,32 @@
     var t0 = ctx.currentTime + 0.03;
     var dur = PLAY_MS / 1000;
 
+    // Gain staging (v2): the female render used to clip at full scale.
+    // Lower voice peaks plus a gentle safety compressor ahead of the
+    // output keep both voices clean — female peaks around 0.75.
+    var peak = state.voice === "female" ? 0.68 : 0.85;
     var master = ctx.createGain();
-    // Slower, breath-led attack with a gentle mid-note swell: a real
-    // held note doesn't switch on at full volume and sit flat.
+    // Breath-led, voiced attack: the breath puff (below) leads the tone
+    // by ~30 ms, and the tone reaches 90% of full level by ~0.13 s —
+    // a singer voices a note; it doesn't fade in like a pad.
     master.gain.setValueAtTime(0, t0);
-    master.gain.linearRampToValueAtTime(0.2, t0 + 0.05);
-    master.gain.linearRampToValueAtTime(0.86, t0 + 0.24);
-    master.gain.linearRampToValueAtTime(0.93, t0 + dur * 0.55);
-    master.gain.setValueAtTime(0.93, t0 + dur - 0.34);
+    master.gain.setValueAtTime(0, t0 + 0.03);
+    master.gain.linearRampToValueAtTime(peak * 0.55, t0 + 0.07);
+    master.gain.linearRampToValueAtTime(peak * 0.97, t0 + 0.14);
+    master.gain.linearRampToValueAtTime(peak, t0 + dur * 0.55);
+    master.gain.setValueAtTime(peak, t0 + dur - 0.34);
     master.gain.linearRampToValueAtTime(0, t0 + dur);
-    master.connect(ctx.destination);
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 18; comp.ratio.value = 3;
+    comp.attack.value = 0.004; comp.release.value = 0.24;
+    master.connect(comp); comp.connect(ctx.destination);
 
     // A touch of small-room warmth behind the voice — a generated
     // impulse, no recording — so the note sits in a space, not a vacuum.
     var verb = ctx.createConvolver();
     verb.buffer = makeRoomImpulse(ctx);
-    var wet = ctx.createGain(); wet.gain.value = 0.13;
-    master.connect(verb); verb.connect(wet); wet.connect(ctx.destination);
+    var wet = ctx.createGain(); wet.gain.value = 0.08;
+    master.connect(verb); verb.connect(wet); wet.connect(comp);
 
     // Voice bus: carries a faint tremolo once the vibrato settles.
     var bus = ctx.createGain(); bus.gain.value = 1;
@@ -691,7 +843,30 @@
     lp.type = "lowpass"; lp.Q.value = 0.4;
     lp.frequency.setValueAtTime(2500, t0);
     lp.frequency.linearRampToValueAtTime(4300, t0 + 0.3);
-    lp.connect(bus);
+    // Voice v3, male only: a shelf pair that thins the low end and
+    // lifts presence, per the eval's direction for the still-dark
+    // male mix. The female voice passed both brightness bars with the
+    // v2 recipe, so her shelves sit at 0 dB — the chain is identical,
+    // the correction is not applied where it isn't needed.
+    // Voice v4: the male high shelf is eased (+3.5 → +2.0 dB) per the
+    // v3 re-run — the v3 lift re-weighted the 1–1.5 kHz region and
+    // pushed measured male F2 to 1286 Hz (+18%). The low shelf
+    // (−5 dB) that helped fix F1 (718 Hz, PASS) and the centroid
+    // (800 Hz, PASS) is held exactly, so the trim pulls F2 back
+    // without disturbing either.
+    // Voice v5: the shelf is eased once more (+2.0 → +1.0 dB) per
+    // the v4 re-run — male F2 improved to +14.1% but stayed outside
+    // its ±10% band. The low shelf is still held exactly, and the
+    // step is small enough to keep the passing male centroid
+    // (770–784 Hz in v4) safely above ~700 Hz.
+    var isMale = state.voice === "male";
+    var lowShelf = ctx.createBiquadFilter();
+    lowShelf.type = "lowshelf"; lowShelf.frequency.value = 300;
+    lowShelf.gain.value = isMale ? -5 : 0;
+    var highShelf = ctx.createBiquadFilter();
+    highShelf.type = "highshelf"; highShelf.frequency.value = 1500;
+    highShelf.gain.value = isMale ? 1.0 : 0;
+    lp.connect(lowShelf); lowShelf.connect(highShelf); highShelf.connect(bus);
 
     // Harmonic source: a glottal-pulse wave instead of a raw sawtooth,
     // so the buzz reads as a throat rather than a synth.
@@ -715,28 +890,157 @@
     var lfo = ctx.createOscillator(); lfo.type = "sine";
     lfo.frequency.value = state.voice === "female" ? 5.5 : 5.2;
     var lfoGain = ctx.createGain();
+    // Depth at a singer's scale (v2): ±40 cents, not the ±9 the eval
+    // measured in v1 — and a slower settle: silent until ~0.45 s,
+    // full depth only by ~1.4 s, as a held note blooms into vibrato.
     lfoGain.gain.setValueAtTime(0, t0);
-    lfoGain.gain.setValueAtTime(0, t0 + 0.3);
-    lfoGain.gain.linearRampToValueAtTime(freq * 0.0052, t0 + 1.0);
-    lfoGain.gain.setValueAtTime(freq * 0.0052, t0 + dur - 0.3);
-    lfoGain.gain.linearRampToValueAtTime(freq * 0.003, t0 + dur);
+    lfoGain.gain.setValueAtTime(0, t0 + 0.45);
+    lfoGain.gain.linearRampToValueAtTime(freq * 0.023, t0 + 1.4);
+    lfoGain.gain.setValueAtTime(freq * 0.023, t0 + dur - 0.3);
+    lfoGain.gain.linearRampToValueAtTime(freq * 0.013, t0 + dur);
     lfo.connect(lfoGain); lfoGain.connect(src.frequency);
     var rateWobble = ctx.createOscillator(); rateWobble.frequency.value = 0.37;
     var rateWobbleGain = ctx.createGain(); rateWobbleGain.gain.value = 0.28;
     rateWobble.connect(rateWobbleGain); rateWobbleGain.connect(lfo.frequency);
 
-    // Slow pitch drift — the small wander of a real held note.
-    var drift1 = ctx.createOscillator(); drift1.frequency.value = 0.29;
-    var drift1Gain = ctx.createGain(); drift1Gain.gain.value = freq * 0.0016;
-    drift1.connect(drift1Gain); drift1Gain.connect(src.frequency);
-    var drift2 = ctx.createOscillator(); drift2.frequency.value = 0.83;
-    var drift2Gain = ctx.createGain(); drift2Gain.gain.value = freq * 0.0008;
-    drift2.connect(drift2Gain); drift2Gain.connect(src.frequency);
+    // Micro-perturbation (v3, calibrated per voice in v4): a real
+    // voice is never metronomic, and v1's periodic sine drift was
+    // itself a machine tell. V2 replaced it with lowpassed white
+    // noise — but the v2 eval measured the delivered wander at
+    // ±0.5–1.0 cents and male jitter at 0.072%: the lowpass filters
+    // were discarding ~99% of the noise's RMS before it reached the
+    // oscillator, so the intended excursions never arrived. V3
+    // generates the perturbation already smooth, at control rate
+    // (see makeSmoothBuffer), normalized to unit RMS and fed to
+    // detune with NO filter in between: a slow wander (random points
+    // ~6×/s) at 9 cents RMS — peaks in the ±10–20 cent band.
+    // Voice v4 jitter calibration (per the v3 re-run): the shared
+    // 7-cent jitter gain landed in opposite failures — male measured
+    // 3.99–8.33% (target 0.2–1%) while female measured 0.082–0.101%,
+    // below the floor (she had passed in v2 at 0.254%). With shared
+    // gains, the delivered per-cycle perturbation scales with period
+    // length (5.10 ms at 196 Hz vs 2.55 ms at 392 Hz), so one gain
+    // cannot land both voices in the band. The jitter gain is now
+    // per-voice, following the report's prescribed first steps:
+    // male scaled DOWN to ¼ of v3 (7 → 1.75 cents RMS) and female
+    // scaled UP 2.5× (7 → 17.5 cents RMS), each aiming at the same
+    // 0.3–0.6% measured settled-window jitter. The wander gain stays
+    // shared at 9 cents RMS, but both buffers are now zero-meaned
+    // in makeSmoothBuffer, so the wander is centred on the target
+    // pitch instead of reading as one-way drift.
+    // Voice v5 jitter calibration (per the v4 re-run): the female
+    // gain at 17.5 cents RMS straddled the 0.2% jitter floor —
+    // 0.187% on the primary render, 0.281% on the re-render — so it
+    // is raised moderately to 24 cents RMS to land her settled
+    // jitter mid-band (~0.3–0.5%). The male gain stays EXACTLY at
+    // 1.75: the v4 report proved the male voice itself is in-band
+    // (median successive period change 0.24–0.28%); its FAIL was an
+    // extractor artifact, addressed on the measurement side.
+    // Voice v6 jitter calibration (per the v5 re-run): the female
+    // gain at 24 cents RMS centred her jitter as intended on most
+    // renders (~0.27–0.32%) but the distribution still tailed below
+    // the 0.2% floor in some renders (0.162% in 1 of 4, with both
+    // estimator variants agreeing and no extractor outliers — a
+    // genuine undershoot), so it is raised once more, moderately,
+    // to 30 cents RMS to centre her ~0.33%. The male gain stays
+    // EXACTLY at 1.75: the v5 report localized the male side of the
+    // jitter gate to the eval harness's detrend step, not the voice,
+    // so no male voice change is made here.
+    // Voice v7 (per the v6 re-run + Jai's listening feedback): the
+    // v6 gate cleared female jitter at 30 cents and proved the male
+    // "failure" was estimator instability, not the voice (raw
+    // successive median in band in 8/8 v5+v6 renders). Jai asked
+    // for MORE RANDOMIZED jitter and a little volume variation:
+    // the jitter contour is made rougher and less predictable —
+    // its random points now come twice as often (interval halved,
+    // 1/60 → 1/120 s, see the jitter buffer below), so it changes
+    // faster cycle-to-cycle instead of gliding on a smooth curve —
+    // and the gains are raised moderately to use the headroom:
+    // male 1.75 → 2.5 cents RMS, female 30 → 36 cents RMS, aiming
+    // for measured jitter ~0.4–0.7% in both voices, mid-band and
+    // safely below the 1% ceiling. Wander is unchanged.
+    // Voice v8 (per the v7 re-run): vibrato depth, male formants +
+    // centroid and female clipping all cleared across all renders,
+    // and the female jitter cleared under every estimator — her
+    // recipe (36 cents, 1/120 s interval, shimmer 0.04) is held
+    // EXACTLY. The one remaining gate item was male jitter under
+    // the local-median protocol (0.128–0.250%, 2 of 4 renders below
+    // the 0.2% floor): at the male pitch (196 Hz, ~5.1 ms period)
+    // the jitter contour's random points still land every ~8.3 ms
+    // and are smoothly interpolated, so adjacent cycles share most
+    // of their contour value and the perturbation does not
+    // decorrelate cycle-to-cycle. The v8 fix is MALE ONLY: his
+    // jitter buffer gets a much faster random interval (1/240 s,
+    // under its own cache key below) so successive cycles receive
+    // genuinely independent nudges, and his jitter gain is raised
+    // moderately (2.5 → 3.2 cents RMS), targeting measured
+    // local-median jitter ~0.35–0.55%, safely mid-band. Nothing
+    // else changes: wander, formants, shelves, vibrato, tremolo
+    // (0.14), male shimmer (0.005) and the clipping chain are all
+    // exactly as in v7.
+    // Voice v9 (per the v8 re-run): the v8 rate/gain change widened
+    // the male jitter spread (0.057–0.329% across renders) instead
+    // of shifting its centre (~0.19%, just under the floor) — under
+    // a smoothed contour the statistic is variance-limited, not
+    // level-limited, so another gain/rate nudge would only widen
+    // the spread again. The v9 fix is therefore STRUCTURAL and
+    // MALE ONLY: his smoothed jitter contour is replaced outright
+    // by a genuinely UNSMOOTHED stepped random detune (see
+    // makeSteppedBuffer) — random values held flat for ~3 ms, then
+    // jumping straight to the next with no interpolation — so
+    // successive cycles cannot share a contour value, and the
+    // stepped component is sized generously at 5 cents RMS to
+    // centre his measured local-median jitter mid-band
+    // (~0.45–0.55%) with margin over draw variance. The smoothed
+    // wander path below is untouched, and the female recipe is
+    // held EXACTLY as in v7/v8 (shared "jitter" buffer at 1/120 s,
+    // 36 cents, shimmer 0.04) — she clears under every estimator.
+    // Formants, shelves, vibrato, tremolo (0.14), shimmer gains
+    // and the clipping chain are all exactly as in v8.
+    var wanderSrc = ctx.createBufferSource();
+    // V5: 1 s loop (4th argument) so the heard window averages the
+    // zero-meaned wander to ~zero — see makeSmoothBuffer's comment.
+    wanderSrc.buffer = makeSmoothBuffer(ctx, "wander", 1 / 6, 1); wanderSrc.loop = true;
+    var wanderGain = ctx.createGain(); wanderGain.gain.value = 9; // cents RMS, delivered, zero-meaned
+    wanderSrc.connect(wanderGain);
+    wanderGain.connect(src.detune);
+    var jitterSrc = ctx.createBufferSource();
+    // V7: point interval halved (1/60 → 1/120 s) — the random
+    // contour changes about twice as fast, rougher cycle-to-cycle.
+    // V8: male only — the interval is halved again (1/120 → 1/240 s)
+    // under a separate "jitterMale" cache key, so his perturbation
+    // decorrelates at the cycle scale (see the v8 note above). The
+    // female voice keeps the v7 buffer call exactly (key "jitter",
+    // 1/120 s).
+    // V9: male only — the smoothed buffer is replaced by a stepped
+    // one (makeSteppedBuffer, key "jitterMaleStep", ~3 ms steps,
+    // no interpolation at all; see the v9 note above). The female
+    // branch of this call is byte-for-byte the v7/v8 one.
+    jitterSrc.buffer = isMale ? makeSteppedBuffer(ctx, "jitterMaleStep", 0.003) : makeSmoothBuffer(ctx, "jitter", 1 / 120); jitterSrc.loop = true;
+    var jitterGain = ctx.createGain();
+    jitterGain.gain.value = isMale ? 5 : 36; // cents RMS, delivered, per-voice (v4; female raised in v5 and v6; both raised in v7; male raised 2.5 → 3.2 in v8, then replaced in v9 by a 5-cent RMS unsmoothed stepped detune, female held at 36)
+    jitterSrc.connect(jitterGain);
+    jitterGain.connect(src.detune);
+    jitterSrc.start(t0, 1.37); jitterSrc.stop(t0 + dur + 0.05);
+    // A whisper of the same jitter on amplitude — natural shimmer,
+    // scaled with the per-voice jitter (v4): male shimmer also
+    // overshot in v3 (3.59% vs a ~1–3% band) while female sat low
+    // (0.45%), so the coupling follows the same ¼× / 2.5× scaling
+    // (0.012 → 0.003 male, 0.03 female). Voice v7: lifted gently
+    // (male 0.003 → 0.005, female 0.03 → 0.04) as part of Jai's
+    // requested volume variation — a living voice, not a wobble.
+    var shimmerGain = ctx.createGain(); shimmerGain.gain.value = isMale ? 0.005 : 0.04;
+    jitterSrc.connect(shimmerGain); shimmerGain.connect(bus.gain);
 
-    // Faint tremolo in step with the vibrato, on the voice bus.
+    // Faint tremolo in step with the vibrato, on the voice bus. V3:
+    // depth up (0.07 → 0.10 ≈ ±0.85 dB nominal) — v2 measured under
+    // ±0.5 dB against a ±0.5–1 dB human band. Voice v7: deepened a
+    // little further (0.10 → 0.14) per Jai's request for gentle
+    // volume movement, so the held note breathes instead of
+    // sitting flat — kept subtle, not a wobble effect.
     var tremGain = ctx.createGain(); tremGain.gain.value = 0;
-    tremGain.gain.setValueAtTime(0, t0 + 0.3);
-    tremGain.gain.linearRampToValueAtTime(0.03, t0 + 1.0);
+    tremGain.gain.setValueAtTime(0, t0 + 0.45);
+    tremGain.gain.linearRampToValueAtTime(0.14, t0 + 1.4);
     lfo.connect(tremGain); tremGain.connect(bus.gain);
 
     var formants = FORMANTS[state.voice];
@@ -752,28 +1056,39 @@
       src.connect(bp); bp.connect(g); g.connect(lp);
     });
     // A dry path so the pitch reads clearly even between formants.
-    var dry = ctx.createGain(); dry.gain.value = 0.35;
+    // V3: for the male voice it drops again (0.12 → 0.05) — the dry
+    // path is raw fundamental, and the eval showed the male note is
+    // still fundamental-heavy. The female mix was balanced; hers stays.
+    var dry = ctx.createGain(); dry.gain.value = isMale ? 0.05 : 0.12;
     src.connect(dry); dry.connect(lp);
     // Sub sine for chest body, following the same pitch contour,
-    // vibrato and drift as the main voice.
+    // vibrato and noise perturbation as the main voice. Same v3
+    // thinning for the male voice (0.12 → 0.05): the sub is pure
+    // fundamental weight, exactly what the male centroid lacks relief
+    // from.
     var sub = ctx.createOscillator(); sub.type = "sine";
     pitchContour(sub);
     lfoGain.connect(sub.frequency);
-    drift1Gain.connect(sub.frequency);
-    drift2Gain.connect(sub.frequency);
-    var subG = ctx.createGain(); subG.gain.value = 0.22;
+    wanderGain.connect(sub.detune);
+    jitterGain.connect(sub.detune);
+    var subG = ctx.createGain(); subG.gain.value = isMale ? 0.05 : 0.12;
     sub.connect(subG); subG.connect(lp);
-    // A whisper of the octave harmonic for air and presence.
+    // A whisper of the octave harmonic for air and presence — a touch
+    // more for the male voice, as part of the same brightening.
     var air = ctx.createOscillator(); air.type = "sine";
     air.frequency.setValueAtTime(freq * 2 * 0.93, t0);
     air.frequency.exponentialRampToValueAtTime(freq * 2 * 1.012, t0 + 0.13);
     air.frequency.exponentialRampToValueAtTime(freq * 2, t0 + 0.3);
-    var airG = ctx.createGain(); airG.gain.value = 0.05;
+    var airG = ctx.createGain(); airG.gain.value = isMale ? 0.045 : 0.03;
     air.connect(airG); airG.connect(lp);
 
-    // Breath: a puff of filtered noise at the onset that thins to a
-    // whisper under the note — the sound of air moving, which a pure
-    // oscillator never makes.
+    // Breath: a puff of filtered noise at the onset — the sound of
+    // air moving, which a pure oscillator never makes. V3: the puff
+    // now decays to near-silence (steady bed 0.016 → 0.004) instead of
+    // running as a constant bed under the whole note; the v2 eval
+    // flagged that steady noise as the likely drag on the male
+    // harmonic-to-noise ratio (9.4 dB, unmoved by the room fix).
+    // Breath is an onset event, not a mattress.
     var noise = ctx.createBufferSource();
     noise.buffer = makeNoiseBuffer(ctx);
     noise.loop = true;
@@ -781,13 +1096,13 @@
     noiseBp.type = "bandpass"; noiseBp.frequency.value = 1700; noiseBp.Q.value = 0.5;
     var noiseGain = ctx.createGain();
     noiseGain.gain.setValueAtTime(0, t0);
-    noiseGain.gain.linearRampToValueAtTime(0.06, t0 + 0.06);
-    noiseGain.gain.linearRampToValueAtTime(0.016, t0 + 0.32);
-    noiseGain.gain.setValueAtTime(0.016, t0 + dur - 0.3);
+    noiseGain.gain.linearRampToValueAtTime(0.065, t0 + 0.03);
+    noiseGain.gain.linearRampToValueAtTime(0.004, t0 + 0.32);
+    noiseGain.gain.setValueAtTime(0.004, t0 + dur - 0.3);
     noiseGain.gain.linearRampToValueAtTime(0, t0 + dur);
     noise.connect(noiseBp); noiseBp.connect(noiseGain); noiseGain.connect(lp);
 
-    var nodes = [src, sub, air, lfo, rateWobble, drift1, drift2, noise];
+    var nodes = [src, sub, air, lfo, rateWobble, wanderSrc, noise];
     nodes.forEach(function(n){ n.start(t0); n.stop(t0 + dur + 0.05); });
 
     state.playing = true;
