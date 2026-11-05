@@ -27,10 +27,11 @@ best-overall times for the session.
 ## Honest note about the reference "voice"
 
 The reference tone is **not** a recording of a person. It is a synthesized voice-like
-tone (harmonic source + formant filtering shaped like the vowel "aa" + slight
-vibrato) generated with the Web Audio API. The male/female toggle changes the base
-pitch and formant placement. Real recorded reference voices are a possible future
-enhancement.
+tone generated with the Web Audio API. As shipped in v14 (2026-11-03), the voice uses
+per-swara onsets — each swara has its own onset shaping — including a sibilant onset
+for Sa and a liquid onset for Re, with stepped detune adding humanised variation to
+the tone. The male/female toggle changes the base pitch and formant placement. Real
+recorded reference voices are a possible future enhancement.
 
 ## Scope (v1)
 
